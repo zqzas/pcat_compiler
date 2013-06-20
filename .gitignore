@@ -15,3 +15,12 @@
 *.exe
 *.out
 *.app
+
+# generated files
+pcat.yy.c
+pcat.c
+pcat.tab.h
+parser
+
+# vim backup
+*.swp
