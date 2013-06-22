@@ -13,11 +13,14 @@ LEX = flex
 
 all: parser
 
-parser: main.c ast.h pcat.o ast.o typecheck.o
-	$(GCC) $(CFLAGS) main.c pcat.o ast.o typecheck.o -o parser
+parser: main.c ast.h pcat.o ast.o symtable.o typecheck.o
+	$(GCC) $(CFLAGS) main.c pcat.o ast.o symtable.o typecheck.o -o parser
 
 ast.o:  ast.c ast.h
 	$(GCC) $(CFLAGS) -c ast.c
+
+symtable.o: symtable.c symtable.h
+	$(GCC) $(CFLAGS) -c symtable.c
 
 typecheck.o: typecheck.c typecheck.h
 	$(GCC) $(CFLAGS) -c typecheck.c

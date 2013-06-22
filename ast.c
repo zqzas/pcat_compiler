@@ -25,6 +25,7 @@ ast* mk_int ( const int x, YYLTYPE *yylloc) {
   res->tag = int_ast;
   res->info.integer = x;
   setup_loc(res, yylloc);
+  res->type = "INTEGER";
   return res;
 };
 
@@ -34,6 +35,7 @@ ast* mk_real ( const double x, YYLTYPE *yylloc) {
   res->tag = real_ast;
   res->info.real = x;
   setup_loc(res, yylloc);
+  res->type = "REAL";
   return res;
 };
 
@@ -54,6 +56,7 @@ ast* mk_str ( const char* x, YYLTYPE *yylloc) {
   res->info.string = (char*) malloc(strlen(x)+1);
   strcpy(res->info.string,x);
   setup_loc(res, yylloc);
+  res->type = "STRING";
   return res;
 };
 

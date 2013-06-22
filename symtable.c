@@ -2,9 +2,7 @@
 #include <string.h>
 #include <malloc.h>
 
-node* root;
-
-node* make_node (char chr) 
+node* make_node(char chr) 
 {
 	node* n = (node*)malloc(sizeof(node));
 	n->chr = chr;
@@ -69,6 +67,7 @@ char* gettype(char* entry)
 
 void addtype(char* entry, char* typeName)
 {
+	printf("%s : %s\n", entry, typeName);
 	node* n = insert(root, entry, 0);
 	n->info = (info*)malloc(sizeof(info));
 	n->info->typeName = typeName;

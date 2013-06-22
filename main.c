@@ -8,12 +8,15 @@
 ********************************************************************************/
 
 #include "ast.h"
+#include "symtable.h"
 #include <stdio.h>
 
 int lineno = 1;
 int format = 0;
 
 extern FILE* yyin;
+
+extern node* root;
 
 void yyparse();
 
@@ -28,6 +31,7 @@ int main ( int argc, char* arg[] ) {
   		if (arg[2][1] == 's') format = 1;
   		if (arg[2][1] == 'f') format = 2;
   }
+  root = make_node('#');
   yyparse();
 
 };

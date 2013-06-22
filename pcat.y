@@ -84,7 +84,7 @@ yyerror ( char* s ) {
 %%
 
 start:                 
-        program     { print_tree($1); type_check($1);}
+        program     { }
       ;
 
 program:
@@ -112,7 +112,9 @@ var_decl_lst:
 
 var_decl:
         identifier identifier_lst typename_01 ASSIGN expression SEMICOLON
-                                                { $$ = mk_node(VAR_DECL, conlst(cons($1, reverse($2) ), multicons(4, $3, mk_opr(":=", &@4), $5, mk_dlmt(";", &@6) ) ), &@$); }
+                                                { tmp_list = cons($1, reverse($2)); 
+												handle_var_decl(tmp_list, $3->type, $5->type);
+												$$ = mk_node(VAR_DECL, conlst(tmp_list, multicons(4, $3, mk_opr(":=", &@4), $5, mk_dlmt(";", &@6) ) ), &@$); }
       ;
 
 type_decl_lst:
@@ -135,12 +137,14 @@ procedure_decl:
       ;
 
 typename:
-        identifier     { $$ = mk_node(TYPE_NAME, cons($1, NULL), &@$); }
+        identifier     { $$ = mk_node(TYPE_NAME, cons($1, NULL), &@$); $$->type = getid($1);}
       ;
 
 typename_01:
-        COLON typename                          { $$ = mk_node(TYPE_NAME_DEC, multicons(2, mk_opr(":", &@1), $2), &@$); }
-      |                                         { $$ = mk_node(EMPTY_EXP, NULL, &@$); }
+        COLON typename                          { $$ = mk_node(TYPE_NAME_DEC, multicons(2, mk_opr(":", &@1), $2), &@$); 
+												  $$->type = $2->type;	
+												}
+      |                                         { $$ = mk_node(EMPTY_EXP, NULL, &@$);$$->type = "VOID"; }
       ;
 
 type:
@@ -171,23 +175,32 @@ fp_section:
         identifier identifier_lst COLON typename{ $$ = mk_node(FP_SEC, cons($1, reverse(cons($4, cons(mk_dlmt(":", &@3), $2) ) ) ), &@$);}
 
 identifier_lst:
-        identifier_lst COMMA identifier         { $$ = cons($3, cons(mk_dlmt(",", &@2), $1) ); }
+        identifier_lst COMMA identifier         { $$ = cons($3,$1); }
       |                                         { $$ = NULL; }
       ;
 
 statement:
-        lvalue ASSIGN expression SEMICOLON      { $$ = mk_node(ASSIGN_ST, cons($1, cons(mk_opr(":=", &@2), cons($3, cons(mk_dlmt(";", &@4), NULL) ) ) ), &@$); }
+        lvalue ASSIGN expression SEMICOLON      { $$ = mk_node(ASSIGN_ST, cons($1, cons(mk_opr(":=", &@2), cons($3, cons(mk_dlmt(";", &@4), NULL) ) ) ), &@$); 
+												handle_assign($1, $3);	
+												}
       | identifier actual_params SEMICOLON      { $$ = mk_node(CALL_ST, cons($1, cons($2, cons(mk_dlmt(";", &@3), NULL) ) ), &@$); }
       | READ LPAREN lvalue read_lval_lst RPAREN SEMICOLON { $$ = mk_node(READ_ST, cons(mk_kwd("READ", &@1), cons(mk_opr("(", &@2), cons($3, reverse(cons(mk_dlmt(";", &@6), cons(mk_opr(")", &@5), $4) ) ) ) ) ), &@$); }
       | WRITE write_params SEMICOLON            { $$ = mk_node(WRT_ST, cons(mk_kwd("WRITE", &@1), cons($2, cons(mk_dlmt(";", &@3), NULL) ) ), &@$); } 
       | IF expression THEN statement_lst 
         statement_elsif_lst
-        statement_else_01 END SEMICOLON         { $$ = mk_node(IF_ST, conlst(cons(mk_kwd("IF", &@1), cons($2, cons(mk_kwd("THEN", &@3), NULL) ) ), conlst(reverse($4), conlst(reverse($5), cons($6, cons(mk_kwd("END", &@7), cons(mk_dlmt(";", &@8), NULL) ) ) ) ) ), &@$); }
+        statement_else_01 END SEMICOLON         { $$ = mk_node(IF_ST, conlst(cons(mk_kwd("IF", &@1), cons($2, cons(mk_kwd("THEN", &@3), NULL) ) ), conlst(reverse($4), conlst(reverse($5), cons($6, cons(mk_kwd("END", &@7), cons(mk_dlmt(";", &@8), NULL) ) ) ) ) ), &@$); 
+												handle_cond($2);	
+												}
       | WHILE expression DO statement_lst END SEMICOLON
-                                                { $$ = mk_node(WHILE_ST, cons(mk_kwd("WHILE", &@1), cons($2, cons(mk_kwd("DO", &@3), conlst(reverse($4), cons(mk_kwd("END", &@5), cons(mk_dlmt(";", &@6), NULL) ) ) ) ) ), &@$); }
+                                                { $$ = mk_node(WHILE_ST, cons(mk_kwd("WHILE", &@1), cons($2, cons(mk_kwd("DO", &@3), conlst(reverse($4), cons(mk_kwd("END", &@5), cons(mk_dlmt(";", &@6), NULL) ) ) ) ) ), &@$); 
+												handle_cond($2);	
+												}
       | LOOP statement_lst END SEMICOLON        { $$ = mk_node(LOOP_ST, cons(mk_kwd("LOOP", &@1), reverse(cons(mk_dlmt(";", &@4), cons(mk_kwd("END", &@3), $2) ) ) ), &@$); }
       | FOR identifier ASSIGN expression TO expression by_expression
-            DO statement_lst END SEMICOLON      { $$ = mk_node(FOR_ST, conlst( conlst(multicons(8, mk_kwd("FOR", &@1), $2, mk_opr(":=", &@3), $4, mk_kwd("TO", &@5), $6, $7, mk_kwd("DO", &@8) ), reverse($9) ), cons(mk_kwd("END", &@10), cons(mk_dlmt(";", &@10), NULL) ) ), &@$); }
+            DO statement_lst END SEMICOLON      { $$ = mk_node(FOR_ST, conlst( conlst(multicons(8, mk_kwd("FOR", &@1), $2, mk_opr(":=", &@3), $4, mk_kwd("TO", &@5), $6, $7, mk_kwd("DO", &@8) ), reverse($9) ), cons(mk_kwd("END", &@10), cons(mk_dlmt(";", &@10), NULL) ) ), &@$); 
+												handle_assign($2, $4);
+												
+												}
       | EXIT SEMICOLON                          { $$ = mk_node(EXIT_ST, multicons(2, mk_kwd("EXIT", &@1), mk_dlmt(";", &@2) ), &@$); }
       | RETURN expression_01 SEMICOLON          { $$ = mk_node(RETURN_ST, multicons(3, mk_kwd("RETURN", &@1), $2, mk_dlmt(";", &@3) ), &@$); }
       ;
@@ -199,7 +212,7 @@ by_expression:
 
 expression_01:
         expression                      { $$ = $1; }
-      |                                 { $$ = mk_node(EMPTY_EXP, NULL, NULL); }
+      |                                 { $$ = mk_node(EMPTY_EXP, NULL, NULL); $$->type = "VOID";}
       ;
 
 statement_lst: 
@@ -246,34 +259,34 @@ write_expr:
       ;
 
 expression:
-        number      { $$ = $1; }
-      | lvalue      { $$ = mk_node(LVAL_EXP, cons($1, NULL), &@$); }
-      | LPAREN expression RPAREN  { $$ = mk_node(PAREN_EXP, cons(mk_opr("(", &@1), cons($2, cons(mk_opr(")", &@3), NULL) ) ), &@$); }
-      | PLUS  expression %prec UPLUS  { $$ = mk_node(UPLUS_EXP, cons(mk_opr("+", &@1), cons($2, NULL) ), &@$);}
-      | MINUS expression %prec UMINUS { $$ = mk_node(UMINUS_EXP, cons(mk_opr("-", &@1), cons($2, NULL) ), &@$); }
-      | NOT   expression              { $$ = mk_node(NOT_EXP, cons(mk_opr("NOT", &@1), cons($2, NULL) ), &@$); }
-      | expression PLUS  expression { $$ = mk_node(PLUS_EXP, cons($1, cons(mk_opr("+", &@2), cons($3, NULL) ) ), &@$); }
-      | expression MINUS expression { $$ = mk_node(MINUS_EXP, cons($1, cons(mk_opr("-", &@2), cons($3, NULL) ) ), &@$); }
-      | expression STAR  expression { $$ = mk_node(TIMES_EXP, cons($1, cons(mk_opr("*", &@2), cons($3, NULL) ) ), &@$); }
-      | expression SLASH expression { $$ = mk_node(SLASH_EXP, cons($1, cons(mk_opr("/", &@2), cons($3, NULL) ) ), &@$); }
-      | expression DIV   expression { $$ = mk_node(DIV_EXP, cons($1, cons(mk_opr("DIV", &@2), cons($3, NULL) ) ), &@$); }
-      | expression MOD   expression { $$ = mk_node(MOD_EXP, cons($1, cons(mk_opr("MOD", &@2), cons($3, NULL) ) ), &@$); }
-      | expression OR    expression { $$ = mk_node(OR_EXP, cons($1, cons(mk_opr("OR", &@2), cons($3, NULL) ) ), &@$); }
-      | expression AND   expression { $$ = mk_node(AND_EXP, cons($1, cons(mk_opr("AND", &@2), cons($3, NULL) ) ), &@$); }
-      | expression GT    expression { $$ = mk_node(GT_EXP, cons($1, cons(mk_opr(">", &@2), cons($3, NULL) ) ), &@$); }
-      | expression LT    expression { $$ = mk_node(LT_EXP, cons($1, cons(mk_opr("<", &@2), cons($3, NULL) ) ), &@$); }
-      | expression EQ    expression { $$ = mk_node(EQ_EXP, cons($1, cons(mk_opr("=", &@2), cons($3, NULL) ) ), &@$); }
-      | expression GE    expression { $$ = mk_node(GE_EXP, cons($1, cons(mk_opr(">=", &@2), cons($3, NULL) ) ), &@$); }
-      | expression LE    expression { $$ = mk_node(LE_EXP, cons($1, cons(mk_opr("<=", &@2), cons($3, NULL) ) ), &@$); }
-      | expression NEQ   expression { $$ = mk_node(NEQ_EXP, cons($1, cons(mk_opr("<>", &@2), cons($3, NULL) ) ), &@$); }
+        number      { $$ = $1; $$->type  = $1->type;}
+      | lvalue      { $$ = mk_node(LVAL_EXP, cons($1, NULL), &@$); $$->type = $1->type;}
+      | LPAREN expression RPAREN  { $$ = mk_node(PAREN_EXP, cons(mk_opr("(", &@1), cons($2, cons(mk_opr(")", &@3), NULL) ) ), &@$); $$->type = $2->type; }
+      | PLUS  expression %prec UPLUS  { $$ = mk_node(UPLUS_EXP, cons(mk_opr("+", &@1), cons($2, NULL) ), &@$); $$->type = handle_expr_single("+", $2);}
+      | MINUS expression %prec UMINUS { $$ = mk_node(UMINUS_EXP, cons(mk_opr("-", &@1), cons($2, NULL) ), &@$); $$->type = handle_expr_single("-", $2);}
+      | NOT   expression              { $$ = mk_node(NOT_EXP, cons(mk_opr("NOT", &@1), cons($2, NULL) ), &@$); $$->type = handle_expr_single("NOT", $2);}
+      | expression PLUS  expression { $$ = mk_node(PLUS_EXP, cons($1, cons(mk_opr("+", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("+", $1, $3);}
+      | expression MINUS expression { $$ = mk_node(MINUS_EXP, cons($1, cons(mk_opr("-", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("-", $1, $3);}
+      | expression STAR  expression { $$ = mk_node(TIMES_EXP, cons($1, cons(mk_opr("*", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("*", $1, $3);}
+      | expression SLASH expression { $$ = mk_node(SLASH_EXP, cons($1, cons(mk_opr("/", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("/", $1, $3);}
+      | expression DIV   expression { $$ = mk_node(DIV_EXP, cons($1, cons(mk_opr("DIV", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("DIV", $1, $3);}
+      | expression MOD   expression { $$ = mk_node(MOD_EXP, cons($1, cons(mk_opr("MOD", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("MOD", $1, $3);}
+      | expression OR    expression { $$ = mk_node(OR_EXP, cons($1, cons(mk_opr("OR", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("OR", $1, $3);}
+      | expression AND   expression { $$ = mk_node(AND_EXP, cons($1, cons(mk_opr("AND", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("AND", $1, $3);}
+      | expression GT    expression { $$ = mk_node(GT_EXP, cons($1, cons(mk_opr(">", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double(">", $1, $3);}
+      | expression LT    expression { $$ = mk_node(LT_EXP, cons($1, cons(mk_opr("<", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("<", $1, $3);}
+      | expression EQ    expression { $$ = mk_node(EQ_EXP, cons($1, cons(mk_opr("=", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("=", $1, $3);}
+      | expression GE    expression { $$ = mk_node(GE_EXP, cons($1, cons(mk_opr(">=", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double(">=", $1, $3);}
+      | expression LE    expression { $$ = mk_node(LE_EXP, cons($1, cons(mk_opr("<=", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("<=", $1, $3);}
+      | expression NEQ   expression { $$ = mk_node(NEQ_EXP, cons($1, cons(mk_opr("<>", &@2), cons($3, NULL) ) ), &@$); $$->type = handle_expr_double("<>", $1, $3);}
       | identifier actual_params { $$ = mk_node(CALL_EXP, cons($1, cons($2, NULL) ), &@$); }
       | identifier record_inits  { $$ = mk_node(REC_EXP, cons($1, cons($2, NULL) ), &@$); }
       | identifier array_inits   { $$ = mk_node(ARRINIT_EXP, cons($1, cons($2, NULL) ), &@$); }
       ;
 
 lvalue:
-        identifier  { $$ = mk_node(VARIABLE, cons($1, NULL), &@$); }
-      | lvalue LBRACKET expression RBRACKET { $$ = mk_node(ARR_DEREF, cons($1, cons(mk_opr("[", &@2), cons($3, cons(mk_opr("]", &@4), NULL) ) ) ), &@$); }
+        identifier  { $$ = mk_node(VARIABLE, cons($1, NULL), &@$); $$->type = lookup($1);}
+      | lvalue LBRACKET expression RBRACKET { $$ = mk_node(ARR_DEREF, cons($1, cons(mk_opr("[", &@2), cons($3, cons(mk_opr("]", &@4), NULL) ) ) ), &@$); $$->type = $1->type;}
       | lvalue DOT identifier { $$ = mk_node(REC_DEREF, cons($1, cons(mk_opr(".", &@2), cons($3, NULL) ) ), &@$); }
       ;
 

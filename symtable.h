@@ -14,8 +14,12 @@ typedef struct node
 	info* info;
 } node;
 
+node* root;
+
 char* gettype(char* entry);
 
 void addtype(char* entry, char* typeName);
+
+node* make_node(char chr);
 
 #endif
