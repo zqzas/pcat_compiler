@@ -7,6 +7,8 @@
 *
 ********************************************************************************/
 
+#ifndef __AST_H__
+#define __AST_H__
 
 #include "malloc.h"
 #include "pcat.tab.h"
@@ -56,6 +58,7 @@ typedef struct ast {
                    struct ast_list*  arguments;
 	  } node;
       } info;
+  char* type;
   struct {
     int first_line, last_line, first_column, last_column;
   } loc; 
@@ -123,3 +126,4 @@ void print_ast_list_tree( ast_list* r, int depth);
 void print_ast_tree( ast* x, int depth, int isLast);
 
 void print_tree( ast* x);
+#endif

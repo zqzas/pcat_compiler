@@ -3,7 +3,7 @@
 extern int lineno;
 
 #include "pcat.yy.c"
-
+#include "typecheck.h"
 #include "ast.h"
 
 /* parse error */
@@ -84,7 +84,7 @@ yyerror ( char* s ) {
 %%
 
 start:                 
-        program     { print_tree($1); }
+        program     { print_tree($1); type_check($1);}
       ;
 
 program:
