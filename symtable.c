@@ -48,14 +48,14 @@ node* find(char* entry)
 
 node* insert(node* r, char* entry, int k)
 {
-	if (strlen(entry) == k + 1)
-		return make_node(entry[k]);
 	node* n = getsub(r, entry[k]);
 	if (n == NULL)
 	{
 		n = make_node(entry[k]);
 		addsub(r, n);
 	}
+	if (k + 1 == strlen(entry))
+		return n;
 	return insert(n, entry, k + 1);
 }
 
@@ -69,13 +69,7 @@ char* gettype(char* entry)
 
 void addtype(char* entry, char* typeName)
 {
-	node* n = insert(root,entry, 0);
+	node* n = insert(root, entry, 0);
+	n->info = (info*)malloc(sizeof(info));
 	n->info->typeName = typeName;
-}
-
-int main()
-{
-	root = make_node('#');
-	addtype("a1", "int");
-	puts(gettype("a1"));	
 }

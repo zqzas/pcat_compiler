@@ -14,14 +14,6 @@ typedef struct node
 	info* info;
 } node;
 
-node* getsub(node* n, char chr);
-
-void addsub(node* n, node* s);
-
-node* find(char* entry);
-
-node* insert(node* r, char* entry, int k);
-
 char* gettype(char* entry);
 
 void addtype(char* entry, char* typeName);
