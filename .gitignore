@@ -21,6 +21,11 @@ pcat.yy.c
 pcat.c
 pcat.tab.h
 parser
+parser0
+a.out
 
 # vim backup
 *.swp
+
+# test datas
+*.pcat
