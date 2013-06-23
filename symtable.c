@@ -61,13 +61,12 @@ char* gettype(char* entry)
 {
 	node* n = find(entry);
 	if (n == NULL)
-		return NULL;
+		return "UNDEFINED";
 	return n->info->typeName;
 }
 
 void addtype(char* entry, char* typeName)
 {
-	printf("%s : %s\n", entry, typeName);
 	node* n = insert(root, entry, 0);
 	n->info = (info*)malloc(sizeof(info));
 	n->info->typeName = typeName;

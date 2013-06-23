@@ -114,6 +114,7 @@ var_decl:
         identifier identifier_lst typename_01 ASSIGN expression SEMICOLON
                                                 { tmp_list = cons($1, reverse($2)); 
 												handle_var_decl(tmp_list, $3->type, $5->type);
+												handle_assign($3, $5);
 												$$ = mk_node(VAR_DECL, conlst(tmp_list, multicons(4, $3, mk_opr(":=", &@4), $5, mk_dlmt(";", &@6) ) ), &@$); }
       ;
 
